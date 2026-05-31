@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Home Solar System Audit</title>
+
+<!-- ─── PWA MANIFEST ───────────────────────────────────── -->
+<link rel="manifest" href="manifest.json">
+
+<!-- ─── iOS / APPLE PWA ───────────────────────────────── -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Solar Audit">
+<link rel="apple-touch-icon" href="icon.svg">
+
+<!-- ─── THEME ─────────────────────────────────────────── -->
+<meta name="theme-color" content="#1a1a6e">
+<meta name="description" content="Sovereign Node — Weston Class 3 Facility Solar System Audit">
+
+<style>
+/* ═══════════════════════════════════════════════════════
+   SOVEREIGN NODE DESIGN SYSTEM — DOCUMENT / PRINT STATE
+   + PWA Chrome layer (hidden on print)
+   ═══════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500;600&family=Syne:wght@700;800&display=swap');
+
+:root {
+  --color-bg:          #f4f4f6;
+  --color-surface:     #ffffff;
+  --color-border:      #000000;
+  --color-border-mid:  #555555;
+  --color-border-rule: #bbbbbb;
+  --color-text:        #000000;
+  --color-text-sec:    #222222;
+  --color-text-tert:   #444444;
+  --color-accent:      #1a1a6e;
+  --color-field:       #f8f8f8;
+  --color-saved:       #1a7a40;
+  --color-warn:        #8a5c00;
+  --color-offline:     #cc0022;
+  --font-mono:         'DM Mono', 'Courier New', monospace;
+  --font-display:      'Syne', Georgia, serif;
+  --pwa-bar-h:         48px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  line-height: 1.6;
+  color: var(--color-text);
+  background: var(--color-bg);
+  padding-top: var(--pwa-bar-h);
+}
+
+/* ═══════════════════════════════════════════════════════
+   PWA CHROME — hidden on print
+   ═══════════════════════════════════════════════════════ */
+.pwa-bar {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: var(--pwa-bar-h);
+  background: var(--color-accent);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 16px;
+  z-index: 1000;
+  border-bottom: 2px solid #000;
+  gap: 8px;
+}
+.pwa-bar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+.pwa-bar-title {
+  font-family: var(--font-display);
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pwa-bar-sub {
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  opacity: 0.75;
+}
+.pwa-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+/* Status indicators */
+.pwa-status {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pwa-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pwa-dot.online  { background: #39e600; box-shadow: 0 0 4px #39e600; }
+.pwa-dot.offline { background: #ff3355; }
+.pwa-dot.saving  { background: #ffcc00; animation: pulse 1s infinite; }
+.pwa-dot.saved   { background: #39e600; }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.3; }
+}
+
+/* PWA buttons */
+.pwa-btn {
+  height: 30px;
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-weight: 700;
+  border: 1.5px solid rgba(255,255,255,0.5);
+  background: transparent;
+  color: #ffffff;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  min-height: 30px;
+}
+.pwa-btn:hover  { background: rgba(255,255,255,0.15); }
+.pwa-btn:active { background: rgba(255,255,255,0.25); }
+.pwa-btn.primary {
+  background: rgba(255,255,255,0.2);
+  border-color: #ffffff;
+}
+
+/* Offline banner */
+.offline-banner {
+  display: none;
+  background: #cc0022;
+  color: #ffffff;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  border-bottom: 1px solid #aa0018;
+}
+.offline-banner.visible { display: block; }
+
+/* Update banner */
+.update-banner {
+  display: none;
+  background: #8a5c00;
+  color: #ffffff;
+  text-align: center;
+  padding: 8px 16px;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  cursor: pointer;
+  border-bottom: 1px solid #6a4400;
+}
+.update-banner.visible { display: block; }
+
+/* ═══════════════════════════════════════════════════════
+   DOCUMENT STYLES (same as print version)
+   ═══════════════════════════════════════════════════════ */
+.page {
+  max-width: 760px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border-left: 1px solid var(--color-border-rule);
+  border-right: 1px solid var(--color-border-rule);
+}
+
+/* Cover */
+.cover {
+  padding: 36px 40px 28px;
+  border-bottom: 3px solid var(--color-border);
+}
+.cover-eyebrow {
+  font-size: 8px;
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  color: var(--color-text-tert);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+.cover h1 {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--color-text);
+  letter-spacing: -0.5px;
+  margin-bottom: 4px;
+}
+.cover h1 span { color: var(--color-accent); }
+.cover-sub {
+  font-size: 9px;
+  color: var(--color-text-tert);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
+}
+.cover-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  border-top: 1px solid var(--color-border-rule);
+  padding-top: 16px;
+}
+.cover-field { padding-right: 20px; }
+.cover-field:not(:last-child) {
+  border-right: 1px solid var(--color-border-rule);
+  margin-right: 20px;
+}
+.cover-field label {
+  display: block;
+  font-size: 7.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--color-text-tert);
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.field-line {
+  border-bottom: 1px solid var(--color-border-mid);
+  height: 18px;
+  width: 100%;
+}
+
+/* Sections */
+.section { border-top: 2px solid var(--color-border); page-break-inside: avoid; }
+.section-header {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  padding: 10px 20px 9px;
+  border-bottom: 1px solid var(--color-border-rule);
+  gap: 10px;
+}
+.section-num   { font-size: 8px; letter-spacing: 0.2em; color: var(--color-accent); font-weight: 700; }
+.section-title { font-family: var(--font-display); font-size: 12px; font-weight: 700; color: var(--color-text); letter-spacing: -0.2px; }
+.section-tag   { font-size: 7.5px; color: var(--color-text-tert); letter-spacing: 0.1em; font-weight: 500; }
+.section-body  { padding: 14px 20px 18px; }
+
+/* Field grid */
+.row { display: grid; gap: 14px; margin-bottom: 12px; }
+.row.two   { grid-template-columns: 1fr 1fr; }
+.row.three { grid-template-columns: 1fr 1fr 1fr; }
+.row.four  { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+.field label {
+  display: block;
+  font-size: 7.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-text-tert);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.field label .req { color: var(--color-accent); }
+.field-input {
+  border: none;
+  border-bottom: 1px solid var(--color-border-mid);
+  width: 100%;
+  height: 22px;
+  background: transparent;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.15s;
+}
+.field-input:focus { border-bottom-color: var(--color-accent); }
+.field-area {
+  border: 1px solid var(--color-border-rule);
+  background: var(--color-field);
+  width: 100%;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-size: 10.5px;
+  color: var(--color-text);
+  outline: none;
+  padding: 6px 8px;
+  resize: vertical;
+  transition: border-color 0.15s;
+}
+.field-area:focus { border-color: var(--color-accent); }
+
+/* Checkboxes */
+.checks { display: flex; flex-wrap: wrap; gap: 10px 18px; margin-top: 5px; }
+.check  { display: flex; align-items: center; gap: 5px; font-size: 10px; color: var(--color-text-sec); }
+.check input[type="checkbox"] { width: 11px; height: 11px; accent-color: var(--color-accent); flex-shrink: 0; }
+
+/* Tables */
+.t { width: 100%; border-collapse: collapse; margin-top: 6px; }
+.t th {
+  font-size: 7.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--color-text-tert);
+  font-weight: 700;
+  text-align: left;
+  padding: 5px 8px;
+  border-bottom: 1.5px solid var(--color-border);
+}
+.t td {
+  padding: 5px 8px;
+  border-bottom: 1px solid var(--color-border-rule);
+  font-size: 10px;
+  color: var(--color-text-sec);
+  vertical-align: middle;
+}
+.t td input {
+  border: none;
+  border-bottom: 1px dashed var(--color-border-rule);
+  background: transparent;
+  width: 100%;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text);
+  outline: none;
+  padding: 1px 0;
+}
+.t td input:focus { border-bottom-color: var(--color-accent); }
+.t tr:last-child td { border-bottom: none; }
+.t-label { font-size: 10px; color: var(--color-text); font-weight: 600; white-space: nowrap; }
+.t tr.total td { border-top: 1.5px solid var(--color-border); font-weight: 700; background: var(--color-field); }
+
+/* Badge / divider / note */
+.badge {
+  display: inline-block;
+  font-size: 7.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--color-accent);
+  border-bottom: 1.5px solid var(--color-accent);
+  padding-bottom: 1px;
+  margin-bottom: 8px;
+  margin-top: 10px;
+}
+hr { border: none; border-top: 1px dashed var(--color-border-rule); margin: 12px 0; }
+.note {
+  border-left: 2px solid var(--color-border-mid);
+  padding: 7px 12px;
+  margin: 10px 0;
+  font-size: 9.5px;
+  color: var(--color-text-sec);
+  background: var(--color-field);
+}
+.note strong { color: var(--color-text); }
+
+/* Footer */
+.doc-footer {
+  border-top: 1px solid var(--color-border-rule);
+  padding: 12px 20px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 8px;
+  color: var(--color-text-tert);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* ═══════════════════════════════════════════════════════
+   PRINT OVERRIDES
+   ═══════════════════════════════════════════════════════ */
+@media print {
+  @page { size: letter; margin: 0.75in; }
+
+  body { background: transparent; font-size: 10px; padding-top: 0; }
+  .pwa-bar, .offline-banner, .update-banner { display: none !important; }
+  .page { max-width: 100%; background: transparent; border: none; }
+
+  .cover { padding: 0 0 20px; border-bottom: 2px solid #000; }
+  .section { page-break-inside: avoid; border-top: 1.5px solid #000; }
+  .section-num   { color: #1a1a6e !important; }
+  .section-title { color: #000 !important; }
+  .badge         { color: #1a1a6e !important; border-color: #1a1a6e !important; }
+  .cover h1 span { color: #1a1a6e !important; }
+
+  * {
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .note       { background: #f5f5f5 !important; }
+  .t tr.total td { background: #f0f0f0 !important; }
+
+  h1, h2, .section-title { page-break-after: avoid; }
+  table    { page-break-inside: auto; }
+  tr       { page-break-inside: avoid; }
+  thead    { display: table-header-group; }
+}
+
+/* ─── ACCESSIBILITY ───────────────────────────────────── */
+:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+</style>
+</head>
+<body>
+
+<!-- ══ PWA CHROME ════════════════════════════════════════ -->
+<div class="pwa-bar" role="banner" aria-label="App controls">
+  <div class="pwa-bar-left">
+    <div class="pwa-bar-title">Solar Audit</div>
+    <div class="pwa-bar-sub">Sovereign Node · Weston</div>
+  </div>
+  <div class="pwa-bar-right">
+    <div class="pwa-status" id="saveStatus" aria-live="polite" aria-label="Save status">
+      <div class="pwa-dot saved" id="saveDot"></div>
+      <span id="saveLabel">Saved</span>
+    </div>
+    <div class="pwa-status" aria-live="polite" aria-label="Network status">
+      <div class="pwa-dot online" id="netDot"></div>
+      <span id="netLabel">Online</span>
+    </div>
+    <button class="pwa-btn" id="clearBtn"
+      onclick="confirmClear()"
+      aria-label="Clear all form data">
+      Clear
+    </button>
+    <button class="pwa-btn primary" id="installBtn"
+      style="display:none"
+      aria-label="Install app to home screen">
+      Install
+    </button>
+    <button class="pwa-btn primary"
+      onclick="window.print()"
+      aria-label="Print this document">
+      Print
+    </button>
+  </div>
+</div>
+
+<!-- Offline banner -->
+<div class="offline-banner" id="offlineBanner" role="alert">
+  ⚡ Offline — all data saved locally. Changes will sync when connectivity returns.
+</div>
+
+<!-- Update available banner -->
+<div class="update-banner" id="updateBanner" role="alert"
+  onclick="applyUpdate()"
+  tabindex="0" aria-label="App update available — tap to reload">
+  ↑ Update available — tap to reload
+</div>
+
+<!-- ══ DOCUMENT ══════════════════════════════════════════ -->
+<div class="page">
+
+<!-- COVER -->
+<div class="cover">
+  <div class="cover-eyebrow">Property Energy Asset Record · Sovereign Node — Weston Class 3 Facility</div>
+  <h1>Home Solar<br><span>System Audit</span></h1>
+  <div class="cover-sub">Tesla Battery · PV Array · Grid Connection · Load Inventory</div>
+  <div class="cover-fields">
+    <div class="cover-field">
+      <label>Property Address</label>
+      <div class="field-line"></div>
+    </div>
+    <div class="cover-field">
+      <label>Audit Date</label>
+      <div class="field-line"></div>
+    </div>
+    <div class="cover-field">
+      <label>Completed By</label>
+      <div class="field-line"></div>
+    </div>
+  </div>
+</div>
+
+<!-- S01 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">01</span>
+    <span class="section-title">System Overview</span>
+    <span class="section-tag">High-level configuration snapshot</span>
+  </div>
+  <div class="section-body">
+    <div class="note"><strong>Sources:</strong> Tesla app · Installer paperwork · Utility bill · Meter label</div>
+    <div class="row three" style="margin-top:10px">
+      <div class="field">
+        <label>System Type<span class="req"> *</span></label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> Grid-Tied</label>
+          <label class="check"><input type="checkbox"> Hybrid</label>
+          <label class="check"><input type="checkbox"> Off-Grid</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Installation Year<span class="req"> *</span></label>
+        <input class="field-input" type="text" placeholder="e.g. 2022">
+      </div>
+      <div class="field">
+        <label>Installer Company</label>
+        <input class="field-input" type="text" placeholder="SavKat (savkat.com)">
+      </div>
+    </div>
+    <div class="row four">
+      <div class="field">
+        <label>Total DC Capacity (kW)<span class="req"> *</span></label>
+        <input class="field-input" type="text" placeholder="e.g. 12.5">
+      </div>
+      <div class="field">
+        <label>Battery Capacity (kWh)<span class="req"> *</span></label>
+        <input class="field-input" type="text" placeholder="e.g. 13.5">
+      </div>
+      <div class="field">
+        <label>No. Battery Units</label>
+        <input class="field-input" type="text" placeholder="e.g. 2">
+      </div>
+      <div class="field">
+        <label>Operating Mode</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> Self-Powered</label>
+          <label class="check"><input type="checkbox"> Backup Only</label>
+          <label class="check"><input type="checkbox"> Time-Based</label>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- S02 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">02</span>
+    <span class="section-title">Solar Array</span>
+    <span class="section-tag">Panels · Orientation · Inverter</span>
+  </div>
+  <div class="section-body">
+    <div class="badge">Panel Specifications</div>
+    <div class="row four">
+      <div class="field"><label>Manufacturer</label><input class="field-input" type="text" placeholder="e.g. Tesla, LG"></div>
+      <div class="field"><label>Model</label><input class="field-input" type="text"></div>
+      <div class="field"><label>Watts / Panel</label><input class="field-input" type="text" placeholder="e.g. 400W"></div>
+      <div class="field"><label>Panel Count</label><input class="field-input" type="text"></div>
+    </div>
+    <div class="row four">
+      <div class="field"><label>Total DC (kW)</label><input class="field-input" type="text"></div>
+      <div class="field"><label>Efficiency %</label><input class="field-input" type="text" placeholder="e.g. 21.5%"></div>
+      <div class="field"><label>Product Warranty</label><input class="field-input" type="text" placeholder="e.g. 25 yr"></div>
+      <div class="field"><label>Temp Coefficient</label><input class="field-input" type="text" placeholder="e.g. -0.35%/°C"></div>
+    </div>
+    <div class="badge">Roof Arrays</div>
+    <table class="t">
+      <thead><tr><th>Array</th><th>Roof Face</th><th>Azimuth (°)</th><th>Tilt (°)</th><th>Panels</th><th>Shading</th></tr></thead>
+      <tbody>
+        <tr><td class="t-label">Array 1</td><td><input type="text" placeholder="South"></td><td><input type="text" placeholder="180"></td><td><input type="text" placeholder="30"></td><td><input type="text"></td><td><input type="text" placeholder="None / Trees"></td></tr>
+        <tr><td class="t-label">Array 2</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Array 3</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Ground Mount</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+    <div class="badge">Inverter</div>
+    <div class="row four">
+      <div class="field">
+        <label>Type</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> String</label>
+          <label class="check"><input type="checkbox"> Micro</label>
+          <label class="check"><input type="checkbox"> Hybrid</label>
+        </div>
+      </div>
+      <div class="field"><label>Make / Model</label><input class="field-input" type="text" placeholder="e.g. Tesla / SolarEdge"></div>
+      <div class="field"><label>AC Output (kW)</label><input class="field-input" type="text" placeholder="e.g. 11.4"></div>
+      <div class="field"><label>Serial No.</label><input class="field-input" type="text"></div>
+    </div>
+  </div>
+</div>
+
+<!-- S03 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">03</span>
+    <span class="section-title">Tesla Battery System</span>
+    <span class="section-tag">Powerwall · Gateway · Configuration</span>
+  </div>
+  <div class="section-body">
+    <div class="row four">
+      <div class="field">
+        <label>Model<span class="req"> *</span></label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> PW2</label>
+          <label class="check"><input type="checkbox"> PW3</label>
+          <label class="check"><input type="checkbox"> PW+</label>
+        </div>
+      </div>
+      <div class="field"><label>Units Installed</label><input class="field-input" type="text"></div>
+      <div class="field"><label>Usable Capacity (kWh)</label><input class="field-input" type="text" placeholder="PW2 = 13.5 ea."></div>
+      <div class="field"><label>Install Date</label><input class="field-input" type="text" placeholder="MM/YYYY"></div>
+    </div>
+    <div class="row four">
+      <div class="field"><label>Gateway Model</label><input class="field-input" type="text" placeholder="e.g. GW2"></div>
+      <div class="field"><label>Firmware Version</label><input class="field-input" type="text" placeholder="From Tesla app"></div>
+      <div class="field"><label>Continuous Power (kW)</label><input class="field-input" type="text" placeholder="PW2 = 5 kW"></div>
+      <div class="field"><label>Peak Power (kW)</label><input class="field-input" type="text" placeholder="PW2 = 10 kW"></div>
+    </div>
+    <div class="row three">
+      <div class="field"><label>Backup Reserve %</label><input class="field-input" type="text" placeholder="e.g. 30%"></div>
+      <div class="field">
+        <label>Coupling Type</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> AC-Coupled</label>
+          <label class="check"><input type="checkbox"> DC-Coupled</label>
+        </div>
+      </div>
+      <div class="field">
+        <label>Backed-Up Panel</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> Whole Home</label>
+          <label class="check"><input type="checkbox"> Critical Load Sub</label>
+        </div>
+      </div>
+    </div>
+    <div class="field"><label>Unit Serial Numbers</label><textarea class="field-area" placeholder="PW Unit 1: &#10;PW Unit 2: &#10;Gateway:"></textarea></div>
+  </div>
+</div>
+
+<!-- S04 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">04</span>
+    <span class="section-title">Electrical Infrastructure</span>
+    <span class="section-tag">Main panel · Subpanels · Service entrance</span>
+  </div>
+  <div class="section-body">
+    <div class="row four">
+      <div class="field">
+        <label>Main Panel Amperage<span class="req"> *</span></label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> 100A</label>
+          <label class="check"><input type="checkbox"> 200A</label>
+          <label class="check"><input type="checkbox"> 400A</label>
+        </div>
+      </div>
+      <div class="field"><label>Panel Brand</label><input class="field-input" type="text" placeholder="e.g. Square D"></div>
+      <div class="field"><label>Spaces Used / Total</label><input class="field-input" type="text" placeholder="e.g. 28 / 40"></div>
+      <div class="field"><label>Panel Age (approx.)</label><input class="field-input" type="text" placeholder="e.g. 2015"></div>
+    </div>
+    <div class="row three">
+      <div class="field"><label>Solar Breaker Size</label><input class="field-input" type="text" placeholder="e.g. 50A"></div>
+      <div class="field"><label>EV Charger Breaker</label><input class="field-input" type="text" placeholder="e.g. 60A / N/A"></div>
+      <div class="field">
+        <label>Transfer Switch</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> ATS</label>
+          <label class="check"><input type="checkbox"> Manual</label>
+          <label class="check"><input type="checkbox"> Tesla GW</label>
+          <label class="check"><input type="checkbox"> None</label>
+        </div>
+      </div>
+    </div>
+    <div class="badge">Subpanels</div>
+    <table class="t">
+      <thead><tr><th>Location</th><th>Amperage</th><th>Battery Backed</th><th>Key Circuits</th></tr></thead>
+      <tbody>
+        <tr><td><input type="text" placeholder="e.g. Critical Load Panel"></td><td><input type="text" placeholder="100A"></td><td><input type="text" placeholder="Yes / No"></td><td><input type="text" placeholder="List circuits"></td></tr>
+        <tr><td><input type="text" placeholder="e.g. Garage subpanel"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td><input type="text" placeholder="e.g. Pool equipment panel"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- S05 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">05</span>
+    <span class="section-title">Utility & Grid Connection</span>
+    <span class="section-tag">Rates · Net metering · Interconnection</span>
+  </div>
+  <div class="section-body">
+    <div class="row three">
+      <div class="field"><label>Utility Company<span class="req"> *</span></label><input class="field-input" type="text" placeholder="e.g. Eversource"></div>
+      <div class="field"><label>Account Number</label><input class="field-input" type="text"></div>
+      <div class="field"><label>Interconnection Date</label><input class="field-input" type="text" placeholder="Date PTO granted"></div>
+    </div>
+    <div class="row four">
+      <div class="field"><label>Rate Plan / Tariff</label><input class="field-input" type="text" placeholder="e.g. R-1, TOU"></div>
+      <div class="field"><label>Avg $/kWh (all-in)</label><input class="field-input" type="text" placeholder="e.g. $0.27"></div>
+      <div class="field"><label>Monthly Fixed Charges</label><input class="field-input" type="text" placeholder="e.g. $8.00/mo"></div>
+      <div class="field"><label>Export Rate ($/kWh)</label><input class="field-input" type="text"></div>
+    </div>
+    <div class="row two">
+      <div class="field">
+        <label>Net Metering Agreement</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> NEM 1.0</label>
+          <label class="check"><input type="checkbox"> NEM 2.0</label>
+          <label class="check"><input type="checkbox"> NEM 3.0</label>
+          <label class="check"><input type="checkbox"> VFIT</label>
+          <label class="check"><input type="checkbox"> None</label>
+        </div>
+      </div>
+      <div class="field"><label>Interconnection Agreement No.</label><input class="field-input" type="text"></div>
+    </div>
+    <div class="note"><strong>CT:</strong> Check Eversource RSIP / DEEP enrollment. Confirm whether interconnection agreement caps exported power.</div>
+  </div>
+</div>
+
+<!-- S06 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">06</span>
+    <span class="section-title">12-Month Performance</span>
+    <span class="section-tag">Tesla app → Energy tab → 12-month view</span>
+  </div>
+  <div class="section-body">
+    <table class="t">
+      <thead>
+        <tr><th>Month</th><th>Solar Gen (kWh)</th><th>Home Use (kWh)</th><th>Grid Import (kWh)</th><th>Grid Export (kWh)</th><th>Battery Charged (kWh)</th><th>Self-Suff. %</th></tr>
+      </thead>
+      <tbody>
+        <tr><td class="t-label">Jan</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Feb</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Mar</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Apr</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">May</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Jun</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Jul</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Aug</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Sep</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Oct</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Nov</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Dec</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr class="total"><td class="t-label">ANNUAL</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+    <div class="row three" style="margin-top:12px">
+      <div class="field"><label>Annual $ Utility Saved</label><input class="field-input" type="text" placeholder="$"></div>
+      <div class="field"><label>Payback Progress</label><input class="field-input" type="text" placeholder="e.g. Year 3 of 9"></div>
+      <div class="field"><label>Avg Solar Fraction %</label><input class="field-input" type="text" placeholder="% load from solar"></div>
+    </div>
+  </div>
+</div>
+
+<!-- S07 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">07</span>
+    <span class="section-title">Load Inventory</span>
+    <span class="section-tag">All significant electrical loads & fuel sources</span>
+  </div>
+  <div class="section-body">
+    <div class="badge">HVAC & Climate</div>
+    <table class="t">
+      <thead><tr><th>System</th><th>Fuel / Type</th><th>Size</th><th>Age (yrs)</th><th>Est. kWh/yr</th><th>Critical?</th></tr></thead>
+      <tbody>
+        <tr><td class="t-label">Heating</td><td><input type="text" placeholder="Gas/Oil/HP/Elec"></td><td><input type="text" placeholder="e.g. 100k BTU"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text" placeholder="Y/N"></td></tr>
+        <tr><td class="t-label">Cooling / AC</td><td><input type="text" placeholder="Central/Mini-split"></td><td><input type="text" placeholder="e.g. 3-ton"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text" placeholder="Y/N"></td></tr>
+        <tr><td class="t-label">Hot Water</td><td><input type="text" placeholder="Gas/Elec/HPWH"></td><td><input type="text" placeholder="e.g. 50 gal"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text" placeholder="Y/N"></td></tr>
+      </tbody>
+    </table>
+    <div class="badge">Major Appliances</div>
+    <table class="t">
+      <thead><tr><th>Appliance</th><th>Fuel / Type</th><th>Model / kW</th><th>Age (yrs)</th><th>Est. kWh/yr</th><th>Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="t-label">Range / Oven</td><td><input type="text" placeholder="Gas/Elec/Induction"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Refrigerator(s)</td><td><input type="text" placeholder="Elec"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Washer / Dryer</td><td><input type="text" placeholder="Gas/Elec"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Dishwasher</td><td><input type="text" placeholder="Elec"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+    <div class="badge">Outdoor & Special</div>
+    <table class="t">
+      <thead><tr><th>System</th><th>Type / Model</th><th>Motor kW/HP</th><th>Daily Hrs</th><th>Est. kWh/yr</th><th>Season</th></tr></thead>
+      <tbody>
+        <tr><td class="t-label">Pool Pump</td><td><input type="text" placeholder="e.g. Hayward VSP"></td><td><input type="text" placeholder="1.5 HP"></td><td><input type="text" placeholder="8 hrs"></td><td><input type="text"></td><td><input type="text" placeholder="May–Oct"></td></tr>
+        <tr><td class="t-label">Pool Heater</td><td><input type="text" placeholder="Gas/HP/Elec"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">EV Charger</td><td><input type="text" placeholder="Level 1/2/DCFC"></td><td><input type="text" placeholder="e.g. 7.2 kW"></td><td><input type="text" placeholder="Avg hrs/day"></td><td><input type="text"></td><td><input type="text" placeholder="Year-round"></td></tr>
+        <tr><td class="t-label">Irrigation Pump</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Outdoor Lighting</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+    <div class="row two" style="margin-top:12px">
+      <div class="field"><label>Total Est. Annual Consumption (kWh)</label><input class="field-input" type="text" placeholder="Sum all loads — cross-ref utility bill"></div>
+      <div class="field"><label>Peak Demand (kW) — from utility bill</label><input class="field-input" type="text" placeholder="Highest single-month peak"></div>
+    </div>
+  </div>
+</div>
+
+<!-- S08 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">08</span>
+    <span class="section-title">Expansion & Upgrade Potential</span>
+    <span class="section-tag">Roof capacity · Battery headroom · Future loads</span>
+  </div>
+  <div class="section-body">
+    <div class="row two">
+      <div class="field"><label>Remaining Usable Roof Area (sq ft)</label><input class="field-input" type="text" placeholder="Unshaded south-facing area"></div>
+      <div class="field"><label>Ground Mount Space Available</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> Yes — approx.</label>
+          <input class="field-input" type="text" style="width:80px;display:inline-block"> sq ft
+          <label class="check"><input type="checkbox"> No</label>
+        </div>
+      </div>
+    </div>
+    <div class="row two">
+      <div class="field"><label>Est. Additional Solar Capacity (kW)</label><input class="field-input" type="text"></div>
+      <div class="field"><label>Additional Powerwall Units Possible</label><input class="field-input" type="text" placeholder="Max 10 per Gateway"></div>
+    </div>
+    <div class="badge">Planned Future Loads</div>
+    <div class="checks">
+      <label class="check"><input type="checkbox"> EV #1</label>
+      <label class="check"><input type="checkbox"> EV #2 (V2H)</label>
+      <label class="check"><input type="checkbox"> Heat Pump HVAC</label>
+      <label class="check"><input type="checkbox"> Heat Pump Water Heater</label>
+      <label class="check"><input type="checkbox"> Induction Range</label>
+      <label class="check"><input type="checkbox"> Workshop / Garage</label>
+      <label class="check"><input type="checkbox"> ADU / Addition</label>
+      <label class="check"><input type="checkbox"> Indoor Grow / Hydro</label>
+    </div>
+    <div class="field" style="margin-top:10px"><label>Notes on Future Plans</label><textarea class="field-area" placeholder="Planned electrification, building additions, load changes within 3 years..."></textarea></div>
+  </div>
+</div>
+
+<!-- S09 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">09</span>
+    <span class="section-title">Incentives & Financial Summary</span>
+    <span class="section-tag">Federal · State · Utility incentives</span>
+  </div>
+  <div class="section-body">
+    <table class="t">
+      <thead><tr><th>Incentive</th><th>Status</th><th>Amount</th><th>Expiry / Notes</th></tr></thead>
+      <tbody>
+        <tr><td class="t-label">Federal ITC (30%)</td><td><input type="text" placeholder="Claimed / Pending / N/A"></td><td><input type="text" placeholder="$"></td><td><input type="text" placeholder="IRA: through 2032"></td></tr>
+        <tr><td class="t-label">CT RSIP / DEEP</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">CT Property Tax Exemption</td><td><input type="text" placeholder="Solar exempt from RE tax"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Eversource Rebate</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+        <tr><td class="t-label">Other</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td></tr>
+      </tbody>
+    </table>
+    <div class="row three" style="margin-top:12px">
+      <div class="field"><label>Total System Cost (original)</label><input class="field-input" type="text" placeholder="$"></div>
+      <div class="field"><label>Net Cost After Incentives</label><input class="field-input" type="text" placeholder="$"></div>
+      <div class="field"><label>Est. Payback Period</label><input class="field-input" type="text" placeholder="e.g. 7–9 years"></div>
+    </div>
+  </div>
+</div>
+
+<!-- S10 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">10</span>
+    <span class="section-title">Maintenance & Service Log</span>
+    <span class="section-tag">All service events · firmware updates · issues</span>
+  </div>
+  <div class="section-body">
+    <table class="t">
+      <thead><tr><th>Date</th><th>Type</th><th>Description</th><th>Technician / Ref</th><th>Cost</th></tr></thead>
+      <tbody>
+        <tr><td><input type="text" placeholder="MM/DD/YY" style="width:80px"></td><td><input type="text" placeholder="Install/Service/FW" style="width:100px"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100px"></td><td><input type="text" placeholder="$" style="width:60px"></td></tr>
+        <tr><td><input type="text" style="width:80px"></td><td><input type="text" style="width:100px"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100px"></td><td><input type="text" style="width:60px"></td></tr>
+        <tr><td><input type="text" style="width:80px"></td><td><input type="text" style="width:100px"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100px"></td><td><input type="text" style="width:60px"></td></tr>
+        <tr><td><input type="text" style="width:80px"></td><td><input type="text" style="width:100px"></td><td><input type="text" style="width:100%"></td><td><input type="text" style="width:100px"></td><td><input type="text" style="width:60px"></td></tr>
+      </tbody>
+    </table>
+    <div class="field" style="margin-top:12px"><label>Open Issues / Outstanding Actions</label><textarea class="field-area" style="min-height:48px" placeholder="Known faults, pending upgrades, follow-up items..."></textarea></div>
+  </div>
+</div>
+
+<!-- S11 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">11</span>
+    <span class="section-title">Notes & Next Actions</span>
+    <span class="section-tag">Observations · Questions · Milestones</span>
+  </div>
+  <div class="section-body">
+    <textarea class="field-area" style="min-height:80px" placeholder="Observations, installer questions, priority upgrades, energy independence milestones..."></textarea>
+  </div>
+</div>
+
+<!-- S12 -->
+<div class="section">
+  <div class="section-header">
+    <span class="section-num">12</span>
+    <span class="section-title">Building Envelope</span>
+    <span class="section-tag">Pre-solar audit · Insulation · Air sealing · BPI / IRS 25C data</span>
+  </div>
+  <div class="section-body">
+    <div class="note"><strong>Context:</strong> A pre-solar BPI-style energy audit was completed prior to installation. Blown-in particulate insulation applied to roof cavity as thermal barrier. Blower door test conducted. Locate original audit report — data supports IRS Form 5695 (25C) and underpins energy independence load modelling.</div>
+    <div class="badge">Pre-Solar Audit Record</div>
+    <div class="row three">
+      <div class="field"><label>Audit Company</label><input class="field-input" type="text" placeholder="Company name"></div>
+      <div class="field"><label>Audit Date</label><input class="field-input" type="text" placeholder="MM/YYYY"></div>
+      <div class="field"><label>Solar Installer</label><input class="field-input" type="text" placeholder="SavKat (savkat.com)"></div>
+    </div>
+    <div class="row three">
+      <div class="field"><label>Auditor Name</label><input class="field-input" type="text"></div>
+      <div class="field">
+        <label>Auditor Certification</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> BPI</label>
+          <label class="check"><input type="checkbox"> RESNET</label>
+          <label class="check"><input type="checkbox"> DOE HES</label>
+          <label class="check"><input type="checkbox"> Other</label>
+        </div>
+      </div>
+      <div class="field"><label>Audit Report Ref No.</label><input class="field-input" type="text" placeholder="From report cover"></div>
+    </div>
+    <div class="badge">Blower Door Test</div>
+    <div class="row four">
+      <div class="field"><label>CFM50 Result<span class="req"> *</span></label><input class="field-input" type="text" placeholder="e.g. 1,840 CFM50"></div>
+      <div class="field"><label>ACH50 Result<span class="req"> *</span></label><input class="field-input" type="text" placeholder="e.g. 4.2 ACH50"></div>
+      <div class="field"><label>BPI Target (ACH50)</label><input class="field-input" type="text" value="3.0–5.0"></div>
+      <div class="field">
+        <label>Result</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> Pass</label>
+          <label class="check"><input type="checkbox"> Fail</label>
+          <label class="check"><input type="checkbox"> No threshold</label>
+        </div>
+      </div>
+    </div>
+    <div class="row two">
+      <div class="field">
+        <label>Post-Work Retest</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> Yes — CFM50:</label>
+          <input class="field-input" type="text" style="width:90px;display:inline-block" placeholder="result">
+          <label class="check"><input type="checkbox"> No</label>
+        </div>
+      </div>
+      <div class="field"><label>HERS Index Score</label><input class="field-input" type="text" placeholder="e.g. 72 (lower = better)"></div>
+    </div>
+    <div class="badge">Roof / Attic Insulation</div>
+    <div class="note"><strong>Note:</strong> Blown-in particulate installed to roof cavity post-audit. Record type, R-value, and depth from installer documentation.</div>
+    <div class="row four">
+      <div class="field">
+        <label>Type</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> Blown Cellulose</label>
+          <label class="check"><input type="checkbox"> Blown Fiberglass</label>
+          <label class="check"><input type="checkbox"> Spray Foam</label>
+          <label class="check"><input type="checkbox"> Batts</label>
+        </div>
+      </div>
+      <div class="field"><label>Installed By</label><input class="field-input" type="text"></div>
+      <div class="field"><label>Install Date</label><input class="field-input" type="text" placeholder="MM/YYYY"></div>
+      <div class="field"><label>R-Value Achieved</label><input class="field-input" type="text" placeholder="e.g. R-49"></div>
+    </div>
+    <div class="row three">
+      <div class="field"><label>Coverage Area (sq ft)</label><input class="field-input" type="text"></div>
+      <div class="field"><label>Depth (inches)</label><input class="field-input" type="text" placeholder="e.g. 14 inches"></div>
+      <div class="field"><label>CT IECC Min. R-Value</label><input class="field-input" type="text" value="R-49 (Zone 5)"></div>
+    </div>
+    <div class="badge">Walls, Foundation & Windows</div>
+    <table class="t">
+      <thead><tr><th>Location</th><th>Type</th><th>R-Value / U-Factor</th><th>Age / Condition</th><th>Upgrade Needed</th></tr></thead>
+      <tbody>
+        <tr><td class="t-label">Exterior Walls</td><td><input type="text" placeholder="Batts / Foam / None"></td><td><input type="text" placeholder="e.g. R-13"></td><td><input type="text"></td><td><input type="text" placeholder="Y/N"></td></tr>
+        <tr><td class="t-label">Basement / Foundation</td><td><input type="text"></td><td><input type="text" placeholder="e.g. R-10"></td><td><input type="text"></td><td><input type="text" placeholder="Y/N"></td></tr>
+        <tr><td class="t-label">Rim Joists</td><td><input type="text"></td><td><input type="text"></td><td><input type="text"></td><td><input type="text" placeholder="Y/N"></td></tr>
+        <tr><td class="t-label">Windows</td><td><input type="text" placeholder="Double/Triple pane"></td><td><input type="text" placeholder="U-Factor e.g. 0.27"></td><td><input type="text"></td><td><input type="text" placeholder="Y/N"></td></tr>
+        <tr><td class="t-label">Exterior Doors</td><td><input type="text"></td><td><input type="text"></td><td><input type="text" placeholder="Good / Fair / Poor"></td><td><input type="text" placeholder="Y/N"></td></tr>
+      </tbody>
+    </table>
+    <div class="badge">IRS Form 5695 (25C) Qualification</div>
+    <div class="note"><strong>Tax note:</strong> 30% credit on audit cost, capped at $150. Keep original audit report and auditor certification attestation — required if return is audited by IRS.</div>
+    <div class="row three">
+      <div class="field">
+        <label>Qualifies for 25C Credit</label>
+        <div class="checks">
+          <label class="check"><input type="checkbox"> Yes</label>
+          <label class="check"><input type="checkbox"> No</label>
+          <label class="check"><input type="checkbox"> Confirm with auditor</label>
+        </div>
+      </div>
+      <div class="field"><label>Audit Cost Paid</label><input class="field-input" type="text" placeholder="$"></div>
+      <div class="field"><label>25C Credit Claimed (max $150)</label><input class="field-input" type="text" placeholder="$"></div>
+    </div>
+    <div class="field"><label>Audit Recommendations — Actioned / Outstanding</label><textarea class="field-area" style="min-height:52px" placeholder="List key recommendations. Mark each: Actioned (date) / Outstanding / Deferred..."></textarea></div>
+  </div>
+</div>
+
+<div class="doc-footer">
+  <span>Home Solar System Audit · Weston Class 3 Facility Node</span>
+  <span>Sovereign Node PWA · Rev 1.0 · 2026</span>
+</div>
+
+</div><!-- /page -->
+
+<!-- ══ PWA JAVASCRIPT ═════════════════════════════════════
+   Three responsibilities:
+   1. Service Worker registration
+   2. Auto-save / restore (localStorage)
+   3. Install prompt + network status
+   ═══════════════════════════════════════════════════════ -->
+<script>
+/* ─── 1. SERVICE WORKER REGISTRATION ─────────────────── */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => {
+        console.log('[SW] Registered:', reg.scope);
+
+        // Listen for a waiting SW (update available)
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              document.getElementById('updateBanner').classList.add('visible');
+            }
+          });
+        });
+      })
+      .catch(err => console.warn('[SW] Registration failed:', err));
+
+    // Listen for messages from SW
+    navigator.serviceWorker.addEventListener('message', event => {
+      if (event.data && event.data.type === 'CONNECTIVITY_RESTORED') {
+        showOnlineStatus();
+      }
+    });
+  });
+}
+
+// Apply update when user taps the banner
+function applyUpdate() {
+  navigator.serviceWorker.ready.then(reg => {
+    if (reg.waiting) {
+      reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+    }
+  });
+  window.location.reload();
+}
+
+/* ─── 2. AUTO-SAVE / RESTORE ──────────────────────────── */
+const STORAGE_KEY = 'solar-audit-v1';
+let saveTimer     = null;
+let newWorker     = null;
+
+function getAllFields() {
+  return document.querySelectorAll('input[type="text"], input[type="checkbox"], textarea');
+}
+
+function saveFormData() {
+  setSaveStatus('saving');
+  const fields = getAllFields();
+  const data   = {};
+  fields.forEach((field, index) => {
+    if (field.type === 'checkbox') {
+      data[`field_${index}`] = field.checked;
+    } else {
+      data[`field_${index}`] = field.value;
+    }
+  });
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    localStorage.setItem(STORAGE_KEY + '_ts', new Date().toISOString());
+    setSaveStatus('saved');
+  } catch (e) {
+    console.warn('[AutoSave] Failed:', e);
+    setSaveStatus('error');
+  }
+}
+
+function restoreFormData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data   = JSON.parse(raw);
+    const fields = getAllFields();
+    fields.forEach((field, index) => {
+      const val = data[`field_${index}`];
+      if (val === undefined) return;
+      if (field.type === 'checkbox') {
+        field.checked = val;
+      } else {
+        field.value = val;
+      }
+    });
+    const ts = localStorage.getItem(STORAGE_KEY + '_ts');
+    if (ts) {
+      const d = new Date(ts);
+      const label = `Restored ${d.toLocaleDateString()} ${d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'})}`;
+      document.getElementById('saveLabel').textContent = label;
+    }
+    setSaveStatus('saved');
+  } catch (e) {
+    console.warn('[AutoSave] Restore failed:', e);
+  }
+}
+
+function setSaveStatus(state) {
+  const dot   = document.getElementById('saveDot');
+  const label = document.getElementById('saveLabel');
+  dot.className = 'pwa-dot ' + state;
+  if (state === 'saving') label.textContent = 'Saving…';
+  if (state === 'saved')  label.textContent = 'Saved';
+  if (state === 'error')  label.textContent = 'Save failed';
+}
+
+// Debounced auto-save on any field change
+document.addEventListener('input', () => {
+  clearTimeout(saveTimer);
+  setSaveStatus('saving');
+  saveTimer = setTimeout(saveFormData, 600);
+});
+document.addEventListener('change', () => {
+  clearTimeout(saveTimer);
+  setSaveStatus('saving');
+  saveTimer = setTimeout(saveFormData, 600);
+});
+
+// Clear form data
+function confirmClear() {
+  if (confirm('Clear all saved data? This cannot be undone.')) {
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY + '_ts');
+    document.querySelectorAll('input[type="text"], textarea').forEach(f => f.value = '');
+    document.querySelectorAll('input[type="checkbox"]').forEach(f => f.checked = false);
+    setSaveStatus('saved');
+    document.getElementById('saveLabel').textContent = 'Cleared';
+  }
+}
+
+// Restore on load
+window.addEventListener('DOMContentLoaded', restoreFormData);
+
+/* ─── 3. INSTALL PROMPT & NETWORK STATUS ─────────────── */
+let deferredPrompt = null;
+
+// Capture install prompt (Chrome / Android)
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  document.getElementById('installBtn').style.display = 'block';
+});
+
+document.getElementById('installBtn').addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  console.log('[PWA] Install outcome:', outcome);
+  deferredPrompt = null;
+  document.getElementById('installBtn').style.display = 'none';
+});
+
+// Network status
+function showOnlineStatus() {
+  const dot   = document.getElementById('netDot');
+  const label = document.getElementById('netLabel');
+  dot.className   = 'pwa-dot online';
+  label.textContent = 'Online';
+  document.getElementById('offlineBanner').classList.remove('visible');
+}
+
+function showOfflineStatus() {
+  const dot   = document.getElementById('netDot');
+  const label = document.getElementById('netLabel');
+  dot.className   = 'pwa-dot offline';
+  label.textContent = 'Offline';
+  document.getElementById('offlineBanner').classList.add('visible');
+}
+
+window.addEventListener('online',  showOnlineStatus);
+window.addEventListener('offline', showOfflineStatus);
+
+// Set initial network state
+if (!navigator.onLine) showOfflineStatus();
+
+// iOS "Add to Home Screen" hint — shown once if not installed
+const isIOS         = /iphone|ipad|ipod/i.test(navigator.userAgent);
+const isStandalone  = window.navigator.standalone === true;
+const hintShown     = localStorage.getItem('pwa-ios-hint');
+
+if (isIOS && !isStandalone && !hintShown) {
+  setTimeout(() => {
+    const hint = document.createElement('div');
+    hint.style.cssText = `
+      position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+      background:#1a1a6e; color:#fff; padding:12px 18px;
+      font-family:'DM Mono',monospace; font-size:10px; font-weight:600;
+      letter-spacing:0.1em; text-align:center; z-index:2000;
+      border:1.5px solid rgba(255,255,255,0.4); max-width:300px;
+      box-shadow:0 4px 20px rgba(0,0,0,0.4);
+    `;
+    hint.innerHTML = `Tap <strong>Share</strong> then <strong>"Add to Home Screen"</strong> to install this app offline`;
+    hint.setAttribute('role', 'status');
+    hint.setAttribute('aria-live', 'polite');
+    document.body.appendChild(hint);
+    localStorage.setItem('pwa-ios-hint', '1');
+    setTimeout(() => hint.remove(), 7000);
+  }, 2500);
+}
+</script>
+</body>
+</html>
