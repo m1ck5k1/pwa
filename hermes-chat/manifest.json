@@ -1,0 +1,14 @@
+{
+  "name": "Hermes Chat",
+  "short_name": "Hermes",
+  "description": "Mobile chat interface for Hermes Agent",
+  "start_url": "index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "theme_color": "#0a0a0f",
+  "background_color": "#0a0a0f",
+  "categories": ["productivity", "utilities"],
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
