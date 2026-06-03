@@ -198,9 +198,7 @@
       <div class="status"><span class="status-dot" id="statusDot"></span><span id="statusText">connecting</span></div>
     </div>
   </header>
-  <div id="messages">
-    <div class="msg system">Enter your tunnel URL and API key in Settings, then start chatting.</div>
-  </div>
+  <div id="messages"></div>
   <div id="input-area">
       <button class="settings-btn" id="settingsBtn">&#x2699;</button>
       <textarea id="msgInput" placeholder="Message..." rows="1" disabled></textarea>
@@ -246,18 +244,45 @@
       localStorage.setItem('hermes_model', settings.model);
     }
 
-    function addMsg(type, content) {
+    const HISTORY_KEY = 'hermes_chat_history';
+    let history = [];
+
+    function loadHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        if (raw) history = JSON.parse(raw);
+        msgContainer.innerHTML = '';
+        const systemMsg = document.createElement('div');
+        systemMsg.className = 'msg system';
+        systemMsg.textContent = history.length ? 'Chat resumed.' : 'Enter your tunnel URL and API key in Settings, then start chatting.';
+        msgContainer.appendChild(systemMsg);
+        history.forEach(h => addMsg(h.type, h.content, h.time));
+        msgContainer.scrollTop = msgContainer.scrollHeight;
+      } catch(e) { history = []; }
+    }
+
+    function saveHistory() {
+      if (history.length > 200) history = history.slice(-200);
+      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
+    }
+
+    function addMsg(type, content, savedTime) {
       const div = document.createElement('div');
       div.className = 'msg ' + type;
       div.textContent = content;
       if (type !== 'system') {
         const time = document.createElement('div');
         time.className = 'time';
-        time.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        const ts = savedTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        time.textContent = ts;
         div.appendChild(time);
       }
       msgContainer.appendChild(div);
       msgContainer.scrollTop = msgContainer.scrollHeight;
+      if (type !== 'system' && !savedTime) {
+        history.push({ type, content, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+        saveHistory();
+      }
     }
 
     function setStatus(state, text) {
@@ -327,6 +352,7 @@
 
     // --- UI Events ---
     loadSettings();
+    loadHistory();
     el('tunnelUrl').value = settings.tunnelUrl;
     el('apiKey').value = settings.apiKey;
     el('modelName').value = settings.model || 'deepseek/deepseek-v4-flash';
