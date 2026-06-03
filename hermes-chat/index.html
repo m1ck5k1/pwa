@@ -366,6 +366,13 @@
       testConnection();
     }
 
+    // iOS keyboard handling — keep input bar visible
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        document.body.style.height = window.visualViewport.height + 'px';
+      });
+    }
+
     // Register service worker
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('sw.js').catch(() => {});
