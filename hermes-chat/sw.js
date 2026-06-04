@@ -1,4 +1,4 @@
-const CACHE = 'hermes-chat-v1';
+const CACHE = 'hermes-chat-v2';
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(['index.html', 'manifest.json', 'icon.svg'])));
   self.skipWaiting();
