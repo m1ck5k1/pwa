@@ -1,11 +1,43 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180">
   <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="180" y2="180">
-      <stop stop-color="#8b5cf6"/>
-      <stop offset="1" stop-color="#6d28d9"/>
+    <radialGradient id="bg" cx="50%" cy="50%" r="75%">
+      <stop offset="0%" stop-color="#141428"/>
+      <stop offset="100%" stop-color="#08080e"/>
+    </radialGradient>
+    <radialGradient id="glowPurple" cx="30%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#8b5cf6" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowCyan" cx="70%" cy="70%" r="60%">
+      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="borderGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.4"/>
+      <stop offset="30%" stop-color="#8b5cf6" stop-opacity="0.08"/>
+      <stop offset="70%" stop-color="#06b6d4" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.4"/>
     </linearGradient>
+    <pattern id="grid" width="12" height="12" patternUnits="userSpaceOnUse">
+      <path d="M 12 0 L 0 0 0 12" fill="none" stroke="#8b5cf6" stroke-width="0.3" stroke-opacity="0.08"/>
+    </pattern>
   </defs>
-  <rect width="180" height="180" rx="36" fill="url(#g)"/>
-  <circle cx="90" cy="85" r="38" fill="none" stroke="#fff" stroke-width="3"/>
-  <path d="M65 110 l25-25 l25 25" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect width="180" height="180" rx="36" fill="url(#bg)"/>
+  <rect width="180" height="180" rx="36" fill="url(#grid)"/>
+  <rect width="180" height="180" rx="36" fill="url(#glowPurple)"/>
+  <rect width="180" height="180" rx="36" fill="url(#glowCyan)"/>
+  <rect x="0.5" y="0.5" width="179" height="179" rx="35.5" fill="none" stroke="url(#borderGrad)" stroke-width="1.5"/>
+  <!-- terminal frame corners -->
+  <path d="M 20 8 L 8 8 L 8 20" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-opacity="0.4"/>
+  <path d="M 160 8 L 172 8 L 172 20" fill="none" stroke="#06b6d4" stroke-width="2" stroke-opacity="0.4"/>
+  <path d="M 20 172 L 8 172 L 8 160" fill="none" stroke="#06b6d4" stroke-width="2" stroke-opacity="0.4"/>
+  <path d="M 160 172 L 172 172 L 172 160" fill="none" stroke="#8b5cf6" stroke-width="2" stroke-opacity="0.4"/>
+  <!-- terminal prompt text -->
+  <text x="90" y="106" text-anchor="middle" font-family="'Courier New','SF Mono','Fira Code','Consolas',monospace" font-size="28" font-weight="bold">
+    <tspan fill="#06b6d4">$</tspan>
+    <tspan fill="#8b5cf6"> h3rm</tspan>
+    <tspan fill="#06b6d4">5k1</tspan>
+  </text>
+  <!-- cursor -->
+  <rect x="165" y="79" width="5" height="18" rx="2" fill="#8b5cf6" opacity="0.85"/>
 </svg>
