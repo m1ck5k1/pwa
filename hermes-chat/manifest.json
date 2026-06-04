@@ -1,7 +1,7 @@
 {
-  "name": "Hermes Chat",
-  "short_name": "Hermes",
-  "description": "Mobile chat interface for Hermes Agent",
+  "name": "h3rm5k1 — the operating system for how I work",
+  "short_name": "h3rm5k1",
+  "description": "Persistent AI colleague. Remembers everything, acts on your behalf, evolves with you.",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
