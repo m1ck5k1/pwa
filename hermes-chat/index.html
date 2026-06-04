@@ -189,10 +189,109 @@
     }
     .modal .actions .save { background: var(--primary); color: white; }
     .modal .actions .cancel { background: var(--surface2); color: var(--text); }
+
+    /* Conversation drawer */
+    #chatBtn {
+      background: none;
+      border: none;
+      color: var(--text);
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 2px 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      opacity: 0.85;
+      border-radius: 6px;
+    }
+    #chatBtn:active { background: var(--surface2); }
+    #chatBtn .arrow { font-size: 10px; opacity: 0.5; }
+    .drawer {
+      position: fixed;
+      top: 0;
+      left: -300px;
+      width: 280px;
+      height: 100%;
+      background: var(--surface);
+      z-index: 200;
+      transition: left 0.25s ease;
+      display: flex;
+      flex-direction: column;
+      padding-top: calc(12px + env(safe-area-inset-top));
+      border-right: 1px solid rgba(255,255,255,0.06);
+    }
+    .drawer.open { left: 0; }
+    .drawer-header {
+      padding: 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .drawer-header h2 { font-size: 16px; font-weight: 600; }
+    .drawer-header button {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-size: 20px;
+      cursor: pointer;
+      padding: 4px 8px;
+    }
+    .drawer-list { flex: 1; overflow-y: auto; padding: 8px; }
+    .drawer-item {
+      padding: 12px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2px;
+    }
+    .drawer-item.active { background: var(--primary-dim); }
+    .drawer-item:not(.active):active { background: var(--surface2); }
+    .drawer-item .name {
+      font-size: 14px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      flex: 1;
+    }
+    .drawer-item .del {
+      font-size: 14px;
+      color: var(--text-dim);
+      opacity: 0;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+    }
+    .drawer-item:hover .del { opacity: 0.6; }
+    .drawer-item .del:active { opacity: 1; color: var(--red); }
+    .drawer-new {
+      margin: 8px;
+      padding: 10px;
+      background: var(--primary);
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .drawer-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.4);
+      z-index: 199;
+      display: none;
+    }
+    .drawer-backdrop.open { display: block; }
   </style>
 </head>
 <body>
   <header>
+    <button id="chatBtn">☰</button>
     <div>
       <h1>Hermes</h1>
       <div class="status"><span class="status-dot" id="statusDot"></span><span id="statusText">connecting</span></div>
@@ -205,6 +304,16 @@
     <button id="send-btn" disabled>
       <svg viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
     </button>
+  </div>
+  <!-- Conversation drawer -->
+  <div class="drawer-backdrop" id="drawerBackdrop"></div>
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <h2>Chats</h2>
+      <button id="closeDrawer">&times;</button>
+    </div>
+    <div class="drawer-list" id="drawerList"></div>
+    <button class="drawer-new" id="newChat">+ New Chat</button>
   </div>
   <div class="modal-overlay" id="settingsOverlay">
     <div class="modal">
@@ -244,27 +353,101 @@
       localStorage.setItem('hermes_model', settings.model);
     }
 
-    const HISTORY_KEY = 'hermes_chat_history';
-    let history = [];
+    const CONV_KEY = 'hermes_conversations';
+    const ACTIVE_KEY = 'hermes_active_conversation';
+    let conversations = {};
+    let activeId = null;
 
-    function loadHistory() {
+    function loadConversations() {
       try {
-        const raw = localStorage.getItem(HISTORY_KEY);
-        if (raw) history = JSON.parse(raw);
-        msgContainer.innerHTML = '';
-        const systemMsg = document.createElement('div');
-        systemMsg.className = 'msg system';
-        systemMsg.textContent = history.length ? 'Chat resumed.' : 'Enter your tunnel URL and API key in Settings, then start chatting.';
-        msgContainer.appendChild(systemMsg);
-        history.forEach(h => addMsg(h.type, h.content, h.time));
-        msgContainer.scrollTop = msgContainer.scrollHeight;
-      } catch(e) { history = []; }
+        const raw = localStorage.getItem(CONV_KEY);
+        conversations = raw ? JSON.parse(raw) : {};
+        activeId = localStorage.getItem(ACTIVE_KEY);
+        if (!conversations[activeId]) {
+          activeId = Object.keys(conversations)[0] || null;
+        }
+        if (!activeId) {
+          activeId = crypto.randomUUID();
+          conversations[activeId] = { id: activeId, name: 'Chat 1', messages: [], createdAt: Date.now() };
+          saveConversations();
+        }
+      } catch(e) {
+        activeId = crypto.randomUUID();
+        conversations = { [activeId]: { id: activeId, name: 'Chat 1', messages: [], createdAt: Date.now() } };
+      }
+      renderConversation();
+      renderDrawer();
     }
 
-    function saveHistory() {
-      if (history.length > 200) history = history.slice(-200);
-      try { localStorage.setItem(HISTORY_KEY, JSON.stringify(history)); } catch(e) {}
+    function saveConversations() {
+      try {
+        localStorage.setItem(CONV_KEY, JSON.stringify(conversations));
+        localStorage.setItem(ACTIVE_KEY, activeId);
+      } catch(e) {}
     }
+
+    function renderConversation() {
+      const conv = conversations[activeId];
+      if (!conv) return;
+      msgContainer.innerHTML = '';
+      if (conv.messages.length === 0) {
+        const sys = document.createElement('div');
+        sys.className = 'msg system';
+        sys.textContent = 'Settings are configured. Start chatting.';
+        msgContainer.appendChild(sys);
+      }
+      conv.messages.forEach(m => addMsg(m.type, m.content, m.time));
+      msgContainer.scrollTop = msgContainer.scrollHeight;
+    }
+
+    function renderDrawer() {
+      const list = el('drawerList');
+      list.innerHTML = '';
+      const ids = Object.keys(conversations).sort((a,b) => conversations[b].createdAt - conversations[a].createdAt);
+      ids.forEach(id => {
+        const c = conversations[id];
+        const item = document.createElement('div');
+        item.className = 'drawer-item' + (id === activeId ? ' active' : '');
+        item.innerHTML = '<span class="name">' + c.name + '</span><button class="del" data-id="' + id + '">✕</button>';
+        item.querySelector('.name').onclick = () => switchConversation(id);
+        item.querySelector('.del').onclick = e => { e.stopPropagation(); deleteConversation(id); };
+        list.appendChild(item);
+      });
+    }
+
+    function switchConversation(id) {
+      if (id === activeId || !conversations[id]) return;
+      activeId = id;
+      saveConversations();
+      renderConversation();
+      renderDrawer();
+      closeDrawer();
+    }
+
+    function newConversation() {
+      const count = Object.keys(conversations).length + 1;
+      const id = crypto.randomUUID();
+      conversations[id] = { id, name: 'Chat ' + count, messages: [], createdAt: Date.now() };
+      activeId = id;
+      saveConversations();
+      renderConversation();
+      renderDrawer();
+      closeDrawer();
+    }
+
+    function deleteConversation(id) {
+      if (!conversations[id] || Object.keys(conversations).length < 2) return;
+      delete conversations[id];
+      if (activeId === id) {
+        activeId = Object.keys(conversations)[0];
+      }
+      saveConversations();
+      renderConversation();
+      renderDrawer();
+    }
+
+    function openDrawer() { el('drawer').classList.add('open'); el('drawerBackdrop').classList.add('open'); }
+    function closeDrawer() { el('drawer').classList.remove('open'); el('drawerBackdrop').classList.remove('open'); }
 
     function addMsg(type, content, savedTime) {
       const div = document.createElement('div');
@@ -280,8 +463,15 @@
       msgContainer.appendChild(div);
       msgContainer.scrollTop = msgContainer.scrollHeight;
       if (type !== 'system' && !savedTime) {
-        history.push({ type, content, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
-        saveHistory();
+        const conv = conversations[activeId];
+        if (!conv) return;
+        conv.messages.push({ type, content, time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) });
+        // Auto-name conversation from first user message
+        if (type === 'user' && conv.name.startsWith('Chat ')) {
+          conv.name = content.length > 30 ? content.substring(0, 30) + '…' : content;
+        }
+        saveConversations();
+        renderDrawer();
       }
     }
 
@@ -352,10 +542,15 @@
 
     // --- UI Events ---
     loadSettings();
-    loadHistory();
+    loadConversations();
     el('tunnelUrl').value = settings.tunnelUrl;
     el('apiKey').value = settings.apiKey;
     el('modelName').value = settings.model || 'deepseek/deepseek-v4-flash';
+
+    el('chatBtn').onclick = openDrawer;
+    el('closeDrawer').onclick = closeDrawer;
+    el('drawerBackdrop').onclick = closeDrawer;
+    el('newChat').onclick = newConversation;
 
     el('settingsBtn').onclick = () => {
       el('tunnelUrl').value = settings.tunnelUrl;
